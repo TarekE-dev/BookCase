@@ -15,9 +15,10 @@ import android.widget.ListView;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements BookListFragment.OnFragmentInteractionListener{
-
-    static ArrayList<BookListFragment> books = new ArrayList<BookListFragment>();
+public class MainActivity extends AppCompatActivity {
+    
+    String [] bookList;
+    static ArrayList<BookDetailsFragment> books = new ArrayList<BookDetailsFragment>();
 
     public static class BookAdapter extends FragmentPagerAdapter {
 
@@ -27,9 +28,7 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
 
         @NonNull
         @Override
-        public Fragment getItem(int position) {
-            return books.get(position);
-        }
+        public Fragment getItem(int position) { return books.get(position); }
 
         @Override
         public int getCount() {
@@ -39,21 +38,26 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        bookList = getResources().getStringArray(R.array.books);
+        if(findViewById(R.id.pane1) != null){
+            landscape();
+        } else {
+            nonLandscape();
+        }
+    }
 
-        String[] bookList = getResources().getStringArray(R.array.books);
+    private void nonLandscape(){
         for(String book : bookList){
-            books.add(BookListFragment.newInstance(book));
+            books.add(BookDetailsFragment.newInstance(book));
         }
 
         ViewPager viewPager = (ViewPager) findViewById(R.id.viewpager);
         viewPager.setAdapter(new BookAdapter(getSupportFragmentManager()));
     }
 
-    @Override
-    public void onFragmentInteraction(Uri uri) {
+    private void landscape(){
 
     }
 }
