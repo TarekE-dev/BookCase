@@ -1,5 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <bool name="forceLandscape">false</bool>
+    <bool name="forceLandscape">true</bool>
     <string name="app_name">BookCase</string>
     <string-array name="books">
         <item>In Search of Lost Time</item>
@@ -18,6 +19,4 @@
         <item>The Catcher in the Rye</item>
         <item>The Divine Comedy</item>
     </string-array>
-
-    <!-- TODO: Remove or change this placeholder text -->
 </resources>
