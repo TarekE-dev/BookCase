@@ -8,13 +8,9 @@ import androidx.fragment.app.FragmentPagerAdapter;
 import androidx.viewpager.widget.ViewPager;
 
 import android.content.pm.ActivityInfo;
-import android.net.Uri;
 import android.os.Bundle;
-import android.view.View;
-import android.widget.ListView;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements  BookListFragment.OnFragmentInteractionListener{
 
@@ -54,28 +50,26 @@ public class MainActivity extends AppCompatActivity implements  BookListFragment
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        if(getResources().getBoolean(R.bool.forceLandscape))
-            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
         bookList = getResources().getStringArray(R.array.books);
-        if(findViewById(R.id.pane1) != null)
-            landscape();
-        else
-            nonLandscape();
-    }
-
-    private void nonLandscape(){
-
-        for(String book : bookList){
-            books.add(BookDetailsFragment.newInstance(book));
+        if(findViewById(R.id.bookList) != null){
+            addBookDetailsFragment();
+            addBookListFragment();
+        } else {
+            for(String book: bookList){
+                books.add(BookDetailsFragment.newInstance(book));
+            }
+            ((ViewPager) findViewById(R.id.viewpager)).setAdapter(new BookAdapter(getSupportFragmentManager()));
         }
-        viewPager = (ViewPager) findViewById(R.id.viewpager);
-        viewPager.setAdapter(new BookAdapter(getSupportFragmentManager()));
     }
 
-    private void landscape(){
+    private void addBookDetailsFragment(){
         if(getSupportFragmentManager().findFragmentByTag(BOOKDETAILS_FRAG) == null)
-            fm.beginTransaction().add(R.id.pane2, BookDetailsFragment.newInstance(""), BOOKDETAILS_FRAG).commit();
-        if(getSupportFragmentManager().findFragmentByTag(BOOKLIST_FRAG) == null)
-            fm.beginTransaction().add(R.id.pane1, BookListFragment.newInstance(bookList), BOOKLIST_FRAG).commit();
+            fm.beginTransaction().add(R.id.bookDetail, BookDetailsFragment.newInstance(""), BOOKDETAILS_FRAG).commit();
     }
+
+    private void addBookListFragment(){
+        if(getSupportFragmentManager().findFragmentByTag(BOOKLIST_FRAG) == null)
+            fm.beginTransaction().add(R.id.bookList, BookListFragment.newInstance(bookList), BOOKLIST_FRAG).commit();
+    }
+
 }
