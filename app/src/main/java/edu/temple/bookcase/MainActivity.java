@@ -41,9 +41,6 @@ public class MainActivity extends AppCompatActivity implements  BookListFragment
         public boolean handleMessage(@NonNull Message message) {
             String response = (String) message.obj;
             generateBookList(response);
-            for(Book book: bookList){
-                System.out.println(book.toString());
-            }
             displayFragments();
             return false;
         }
@@ -143,10 +140,6 @@ public class MainActivity extends AppCompatActivity implements  BookListFragment
             fm.beginTransaction().remove(bookListFragment).commit();
             fm.executePendingTransactions();
             bookListFragment = BookListFragment.newInstance(bookList);
-            System.out.println("PRITNING THE BOOKS");
-            for(Book book: bookList){
-                System.out.println(book.toString());
-            }
             fm.beginTransaction().add(R.id.bookList, bookListFragment, BOOKLIST_FRAG).commit();
         }
     }
