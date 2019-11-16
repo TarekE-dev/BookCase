@@ -7,24 +7,20 @@
     android:id="@+id/container1"
     android:orientation="vertical"
     tools:context=".BookDetailsFragment">
-
     <LinearLayout
         android:layout_width="fill_parent"
         android:layout_height="0dp"
         android:orientation="horizontal"
         android:gravity="center_horizontal"
         android:layout_weight="9">
-
         <ImageView
             android:id="@+id/bookImg"
-            android:layout_width="match_parent"
+            android:layout_width="150dp"
             android:layout_height="match_parent"
             android:adjustViewBounds="true"
             android:scaleType="centerCrop"
             tools:src="@tools:sample/backgrounds/scenic" />
-
     </LinearLayout>
-
     <TextView
         android:id="@+id/bookTitle"
         android:layout_width="match_parent"
@@ -35,13 +31,10 @@
         android:autoSizeMinTextSize="12sp"
         android:autoSizeMaxTextSize="100sp"
         android:autoSizeStepGranularity="2sp" />
-
     <TextView
         android:id="@+id/bookAuthor"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
         android:textAlignment="center" />
-
-
 </LinearLayout>

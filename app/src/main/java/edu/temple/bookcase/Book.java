@@ -72,4 +72,10 @@ public class Book implements Parcelable {
         parcel.writeInt(published);
         parcel.writeString(coverURL);
     }
+
+    @Override
+    public String toString(){
+        return String.format("id: %d\ntitle: %s\nauthor: %s\npublished: %d\nURL: %s\n",
+                id, title, author, published, coverURL);
+    }
 }

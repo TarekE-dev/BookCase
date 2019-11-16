@@ -1,7 +1,6 @@
 package edu.temple.bookcase;
 
 import android.content.Context;
-import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
@@ -10,8 +9,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
+
+import java.util.ArrayList;
 
 import static android.widget.AdapterView.*;
 
@@ -27,14 +27,11 @@ import static android.widget.AdapterView.*;
 public class BookListFragment extends Fragment {
 
     ListView listView;
-    String[] books;
+    ArrayList<Book> books = null;
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-
-    // TODO: Rename and change types of parameters
-    private String mParam1;
+    private static final String BOOKLIST = "BOOK_LIST";
 
     private OnFragmentInteractionListener parentFragment;
 
@@ -49,10 +46,10 @@ public class BookListFragment extends Fragment {
      * @return A new instance of fragment BookListFragment.
      */
     // TODO: Rename and change types and number of parameters
-    public static BookListFragment newInstance(String[] books) {
+    public static BookListFragment newInstance(ArrayList<Book> books) {
         BookListFragment fragment = new BookListFragment();
         Bundle args = new Bundle();
-        args.putStringArray(ARG_PARAM1, books);
+        args.putParcelableArrayList(BOOKLIST, books);
         fragment.setArguments(args);
         return fragment;
     }
@@ -61,7 +58,7 @@ public class BookListFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            books = getArguments().getStringArray(ARG_PARAM1);
+            books = getArguments().getParcelableArrayList(BOOKLIST);
         }
     }
 
@@ -96,6 +93,10 @@ public class BookListFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
         parentFragment = null;
+    }
+
+    public ArrayList<Book> getBooks(){
+        return this.books;
     }
 
     /**

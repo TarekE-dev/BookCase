@@ -2,14 +2,16 @@ package edu.temple.bookcase;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
-import androidx.fragment.app.FragmentPagerAdapter;
-import androidx.viewpager.widget.ViewPager;
 
-import android.content.pm.ActivityInfo;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Message;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -25,75 +27,172 @@ public class MainActivity extends AppCompatActivity implements  BookListFragment
 
     private final String BOOKLIST_FRAG = "book_list_frag";
     private final String BOOKDETAILS_FRAG = "book_details_frag";
+    private final String VIEWPAGER_FRAG = "view_pager_frag";
 
+    Button searchButton;
+    EditText searchText;
 
-    String[] bookList;
-    ArrayList<Book> BOOKS = new ArrayList<Book>();
-    ViewPager viewPager;
     BookDetailsFragment bookDetailsFragment;
+    BookListFragment bookListFragment;
+    ViewPagerFragment viewPagerFragment;
 
+    Handler jsonHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(@NonNull Message message) {
+            String response = (String) message.obj;
+            generateBookList(response);
+            for(Book book: bookList){
+                System.out.println(book.toString());
+            }
+            displayFragments();
+            return false;
+        }
+    });
+
+    ArrayList<Book> bookList = null;
     FragmentManager fm = getSupportFragmentManager();
-    static ArrayList<BookDetailsFragment> books = new ArrayList<BookDetailsFragment>();
 
     @Override
     public void onFragmentInteraction(int index) {
-        ((BookDetailsFragment) fm.findFragmentByTag(BOOKDETAILS_FRAG)).displayTitle(bookList[index]);
-    }
-
-    public static class BookAdapter extends FragmentPagerAdapter {
-
-        public BookAdapter(@NonNull FragmentManager fm) {
-            super(fm);
-        }
-
-        @NonNull
-        @Override
-        public Fragment getItem(int position) { return books.get(position); }
-
-        @Override
-        public int getCount() {
-            return books.size();
-        }
+        ((BookDetailsFragment) fm.findFragmentByTag(BOOKDETAILS_FRAG)).displayBook(bookList.get(index));
     }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        bookList = getResources().getStringArray(R.array.books);
+        bookDetailsFragment = (BookDetailsFragment) fm.findFragmentByTag(BOOKDETAILS_FRAG);
+        bookListFragment = (BookListFragment) fm.findFragmentByTag(BOOKLIST_FRAG);
+        viewPagerFragment = (ViewPagerFragment) fm.findFragmentByTag(VIEWPAGER_FRAG);
+
+        searchButton = findViewById(R.id.searchButton);
+        searchText = findViewById(R.id.searchText);
+        searchButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                getJsonResponse(getResources().getString(R.string.BookSearchAPI) + searchText.getText());
+            }
+        });
+        bookList = getBookList();
+        if(bookList == null)
+            getJsonResponse(getResources().getString(R.string.BookAPI));
+        else
+            displayFragments();
+    }
+
+    private ArrayList<Book> getBookList() {
+        if(findViewById(R.id.bookList) != null){
+            if(viewPagerFragment != null){
+                return viewPagerFragment.getBooks();
+            } else if(bookListFragment != null) {
+                return bookListFragment.getBooks();
+            }
+        } else {
+            if(bookListFragment != null){
+                return bookListFragment.getBooks();
+            } else if(viewPagerFragment != null){
+                return viewPagerFragment.getBooks();
+            }
+        }
+        return null;
+    }
+
+    private void displayFragments(){
         if(findViewById(R.id.bookList) != null){
             addBookDetailsFragment();
             addBookListFragment();
         } else {
-            for(String book: bookList){
-                books.add(BookDetailsFragment.newInstance(book));
-            }
-            ((ViewPager) findViewById(R.id.viewpager)).setAdapter(new BookAdapter(getSupportFragmentManager()));
+            addViewPagerFragment();
+        }
+    }
+
+    private void addViewPagerFragment(){
+        if(viewPagerFragment == null) {
+            viewPagerFragment = ViewPagerFragment.newInstance(bookList);
+            fm.beginTransaction().add(R.id.viewPagerFragment, viewPagerFragment, VIEWPAGER_FRAG).commit();
+        } else {
+            fm.beginTransaction().remove(viewPagerFragment).commit();
+            fm.executePendingTransactions();
+            viewPagerFragment = ViewPagerFragment.newInstance(bookList);
+            fm.beginTransaction()
+                    .add(R.id.viewPagerFragment, viewPagerFragment, VIEWPAGER_FRAG)
+                    .commit();
         }
     }
 
     private void addBookDetailsFragment(){
-        if(getSupportFragmentManager().findFragmentByTag(BOOKDETAILS_FRAG) == null)
-            fm.beginTransaction().add(R.id.bookDetail, BookDetailsFragment.newInstance(""), BOOKDETAILS_FRAG).commit();
+        Book toView = null;
+        if(viewPagerFragment != null && viewPagerFragment.getCurrentFragment() != null)
+            toView = viewPagerFragment.getCurrentFragment().getBook();
+        if(bookDetailsFragment == null) {
+            bookDetailsFragment = BookDetailsFragment.newInstance(toView);
+            fm.beginTransaction().add(R.id.bookDetail, bookDetailsFragment, BOOKDETAILS_FRAG).commit();
+        } else{
+            fm.beginTransaction().remove(bookDetailsFragment).commit();
+            bookDetailsFragment = BookDetailsFragment.newInstance(toView);
+            fm.beginTransaction().add(R.id.bookDetail, bookDetailsFragment, BOOKDETAILS_FRAG).commit();
+
+        }
     }
 
     private void addBookListFragment(){
-        if(getSupportFragmentManager().findFragmentByTag(BOOKLIST_FRAG) == null)
-            fm.beginTransaction().add(R.id.bookList, BookListFragment.newInstance(bookList), BOOKLIST_FRAG).commit();
+        if(bookListFragment == null) {
+            bookListFragment = BookListFragment.newInstance(bookList);
+            fm.beginTransaction().add(R.id.bookList, bookListFragment, BOOKLIST_FRAG).commit();
+        } else {
+            fm.beginTransaction().remove(bookListFragment).commit();
+            fm.executePendingTransactions();
+            bookListFragment = BookListFragment.newInstance(bookList);
+            System.out.println("PRITNING THE BOOKS");
+            for(Book book: bookList){
+                System.out.println(book.toString());
+            }
+            fm.beginTransaction().add(R.id.bookList, bookListFragment, BOOKLIST_FRAG).commit();
+        }
     }
 
-    private void generateBookList(String url) throws MalformedURLException, JSONException {
-        String response = getText(url);
-        JSONObject reader = new JSONObject(response);
-        
+    private void generateBookList(String response)  {
+        bookList = new ArrayList<Book>();
+        JSONArray reader = null;
+        try {
+            reader = new JSONArray(response);
+        } catch (JSONException e){}
+        for(int book=0; book < reader.length(); book++){
+            JSONObject obj = null;
+            try {
+                obj = reader.getJSONObject(book);
+            } catch (JSONException e) {
+                e.printStackTrace();
+            }
+            int id = 0;
+            String title = null;
+            String author = null;
+            int published = 0;
+            String coverURL = null;
+            try {
+                id = obj.getInt("book_id");
+                title = obj.getString("title");
+                author = obj.getString("author");
+                published = obj.getInt("published");
+                coverURL = obj.getString("cover_url");
+            }catch (JSONException e){
+                e.printStackTrace();
+            }
+            bookList.add(new Book(id, title, author, published, coverURL));
+        }
     }
 
-    private String getText(String url) throws MalformedURLException{
-        final URL bookAPI = new URL(url);
-        final String[] response = new String[1];
+    private void getJsonResponse(final String url) {
         new Thread() {
           @Override
           public void run(){
+              String response;
+              URL bookAPI = null;
+              try {
+                  bookAPI = new URL(url);
+              }catch (MalformedURLException e){
+                  e.printStackTrace();
+              }
               URLConnection connection = null;
               BufferedReader in = null;
               try {
@@ -103,7 +202,9 @@ public class MainActivity extends AppCompatActivity implements  BookListFragment
               }
               try {
                   in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-              } catch (Exception e){}
+              } catch (Exception e){
+                  e.printStackTrace();
+              }
               StringBuilder sb = new StringBuilder();
               String currentLine = null;
               while(true){
@@ -117,10 +218,16 @@ public class MainActivity extends AppCompatActivity implements  BookListFragment
                   }
                   sb.append(currentLine);
               }
-              response[0] = sb.toString();
+              try {
+                  in.close();
+              } catch (IOException e){
+                  e.printStackTrace();
+              }
+              response = sb.toString();
+              Message msg = Message.obtain();
+              msg.obj = response;
+              jsonHandler.sendMessage(msg);
           }
         }.start();
-        return response[0];
     }
-
 }
