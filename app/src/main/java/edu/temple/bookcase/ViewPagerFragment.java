@@ -41,7 +41,6 @@ public class ViewPagerFragment extends Fragment {
         public Fragment getItem(int position) {
             Fragment newFragment = BookDetailsFragment.newInstance(bookList.get(position));
             viewing = bookList.get(position);
-            System.out.println(viewing);
             return newFragment;
         }
 
@@ -104,10 +103,6 @@ public class ViewPagerFragment extends Fragment {
     }
 
     public ArrayList<Book> getBooks(){return this.bookList;}
-
-    public Book getCurrentBook(){
-        return viewing;
-    }
 
     @Override
     public void onDetach() {

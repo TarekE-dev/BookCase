@@ -213,9 +213,8 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
 
     private void addBookDetailsFragment(){
         Book toView = null;
-        if(viewPagerFragment != null) {
-            System.out.println(viewPagerFragment.getCurrentBook());
-            toView = viewPagerFragment.getCurrentBook();
+        if(currentBook != null){
+            toView = currentBook;
         }
         if(bookDetailsFragment == null) {
             bookDetailsFragment = BookDetailsFragment.newInstance(toView);
