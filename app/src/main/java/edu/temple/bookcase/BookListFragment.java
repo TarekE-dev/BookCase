@@ -1,7 +1,6 @@
 package edu.temple.bookcase;
 
 import android.content.Context;
-import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
@@ -10,8 +9,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
 import android.widget.ListView;
+
+import java.util.ArrayList;
 
 import static android.widget.AdapterView.*;
 
@@ -19,7 +19,7 @@ import static android.widget.AdapterView.*;
 /**
  * A simple {@link Fragment} subclass.
  * Activities that contain this fragment must implement the
- * {@link BookListFragment.OnFragmentInteractionListener} interface
+ * {@link BookListFragmentCommunicator} interface
  * to handle interaction events.
  * Use the {@link BookListFragment#newInstance} factory method to
  * create an instance of this fragment.
@@ -27,16 +27,13 @@ import static android.widget.AdapterView.*;
 public class BookListFragment extends Fragment {
 
     ListView listView;
-    String[] books;
+    ArrayList<Book> books = null;
 
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
+    private static final String BOOKLIST = "BOOK_LIST";
 
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-
-    private OnFragmentInteractionListener parentFragment;
+    private BookListFragmentCommunicator parentFragment;
 
     public BookListFragment() {
     }
@@ -49,10 +46,10 @@ public class BookListFragment extends Fragment {
      * @return A new instance of fragment BookListFragment.
      */
     // TODO: Rename and change types and number of parameters
-    public static BookListFragment newInstance(String[] books) {
+    public static BookListFragment newInstance(ArrayList<Book> books) {
         BookListFragment fragment = new BookListFragment();
         Bundle args = new Bundle();
-        args.putStringArray(ARG_PARAM1, books);
+        args.putParcelableArrayList(BOOKLIST, books);
         fragment.setArguments(args);
         return fragment;
     }
@@ -61,7 +58,7 @@ public class BookListFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            books = getArguments().getStringArray(ARG_PARAM1);
+            books = getArguments().getParcelableArrayList(BOOKLIST);
         }
     }
 
@@ -75,7 +72,7 @@ public class BookListFragment extends Fragment {
         listView.setOnItemClickListener(new OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                parentFragment.onFragmentInteraction(i);
+                parentFragment.onBookClicked(i);
             }
         });
         return view;
@@ -84,11 +81,11 @@ public class BookListFragment extends Fragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        if (context instanceof OnFragmentInteractionListener) {
-            parentFragment = (OnFragmentInteractionListener) context;
+        if (context instanceof BookListFragmentCommunicator) {
+            parentFragment = (BookListFragmentCommunicator) context;
         } else {
             throw new RuntimeException(context.toString()
-                    + " must implement OnFragmentInteractionListener");
+                    + " must implement BookListFragmentCommunicator");
         }
     }
 
@@ -96,6 +93,10 @@ public class BookListFragment extends Fragment {
     public void onDetach() {
         super.onDetach();
         parentFragment = null;
+    }
+
+    public ArrayList<Book> getBooks(){
+        return this.books;
     }
 
     /**
@@ -108,7 +109,7 @@ public class BookListFragment extends Fragment {
      * "http://developer.android.com/training/basics/fragments/communicating.html"
      * >Communicating with Other Fragments</a> for more information.
      */
-    public interface OnFragmentInteractionListener {
-        void onFragmentInteraction(int index);
+    public interface BookListFragmentCommunicator {
+        void onBookClicked(int index);
     }
 }

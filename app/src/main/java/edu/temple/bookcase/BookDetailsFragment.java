@@ -1,7 +1,6 @@
 package edu.temple.bookcase;
 
 import android.content.Context;
-import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
@@ -9,9 +8,10 @@ import androidx.fragment.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
-
-import org.w3c.dom.Text;
+import com.squareup.picasso.Picasso;
 
 
 /**
@@ -23,13 +23,17 @@ import org.w3c.dom.Text;
 public class BookDetailsFragment extends Fragment {
     // TODO: Rename parameter arguments, choose names that match
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
-    private static final String BOOK_NAME = "BOOK_NAME";
+    private static final String BOOK_OBJ = "BOOK_OBJ";
 
     // TODO: Rename and change types of parameters
-    private String bookName;
+    private Book bookObj;
 
     View inflatedView;
-    View bookInfo;
+    View bookTitle;
+    View bookImg;
+    View bookAuthor;
+    Button playButton;
+    private BookDetailsFragmentCommunicator parentFragment;
 
     public BookDetailsFragment() {
     }
@@ -38,14 +42,14 @@ public class BookDetailsFragment extends Fragment {
      * Use this factory method to create a new instance of
      * this fragment using the provided parameters.
      *
-     * @param bookName Parameter 1.
+     * @param bookObj Parameter 1.
      * @return A new instance of fragment BookListFragment.
      */
     // TODO: Rename and change types and number of parameters
-    public static BookDetailsFragment newInstance(String bookName) {
+    public static BookDetailsFragment newInstance(Book bookObj) {
         BookDetailsFragment fragment = new BookDetailsFragment();
         Bundle args = new Bundle();
-        args.putString(BOOK_NAME, bookName);
+        args.putParcelable(BOOK_OBJ, bookObj);
         fragment.setArguments(args);
         return fragment;
     }
@@ -54,7 +58,7 @@ public class BookDetailsFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
-            bookName = getArguments().getString(BOOK_NAME);
+            bookObj = getArguments().getParcelable(BOOK_OBJ);
         }
     }
 
@@ -63,23 +67,51 @@ public class BookDetailsFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         inflatedView =  inflater.inflate(R.layout.fragment_book_details, container, false);
-        bookInfo = (TextView) inflatedView.findViewById(R.id.book_info);
-        ((TextView) bookInfo).setText(bookName);
+        bookTitle = (TextView) inflatedView.findViewById(R.id.bookTitle);
+        bookImg = (ImageView) inflatedView.findViewById(R.id.bookImg);
+        bookAuthor = (TextView) inflatedView.findViewById(R.id.bookAuthor);
+        playButton = inflatedView.findViewById(R.id.playButton);
+        playButton.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View view) {
+            if(bookObj != null) {
+                parentFragment.onButtonPressed(bookObj);
+            }
+        }});
+        displayBook(bookObj);
         return inflatedView;
     }
 
-    public void displayTitle(String title){
-        ((TextView) bookInfo).setText(title);
+    public void displayBook(Book book){
+        if(book != null) {
+            bookObj = book;
+            ((TextView) bookTitle).setText(book.getTitle());
+            Picasso.with(getActivity().getApplicationContext()).load(book.getURL()).fit().into((ImageView) bookImg);
+            ((TextView) bookAuthor).setText(book.getPublished() + ": " + book.getAuthor());
+            inflatedView.findViewById(R.id.playButton).setVisibility(View.VISIBLE);
+        } else {
+            inflatedView.findViewById(R.id.playButton).setVisibility(View.GONE);
+        }
     }
+
+    public Book getBook(){return this.bookObj;}
 
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
+        if (context instanceof BookDetailsFragment.BookDetailsFragmentCommunicator) {
+            parentFragment = (BookDetailsFragment.BookDetailsFragmentCommunicator) context;
+        } else {
+            throw new RuntimeException(context.toString()
+                    + " must implement BookDetailsFragmentCommunicator");
+        }
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
+    }
+
+    public interface BookDetailsFragmentCommunicator {
+        void onButtonPressed(Book book);
     }
 
 }
