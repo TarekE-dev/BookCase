@@ -1,7 +1,6 @@
 package edu.temple.bookcase;
 
 import android.content.Context;
-import android.media.Image;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
@@ -9,12 +8,10 @@ import androidx.fragment.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
-
 import com.squareup.picasso.Picasso;
-
-import java.util.ArrayList;
 
 
 /**
@@ -35,6 +32,8 @@ public class BookDetailsFragment extends Fragment {
     View bookTitle;
     View bookImg;
     View bookAuthor;
+    Button playButton;
+    private BookDetailsFragmentCommunicator parentFragment;
 
     public BookDetailsFragment() {
     }
@@ -71,15 +70,25 @@ public class BookDetailsFragment extends Fragment {
         bookTitle = (TextView) inflatedView.findViewById(R.id.bookTitle);
         bookImg = (ImageView) inflatedView.findViewById(R.id.bookImg);
         bookAuthor = (TextView) inflatedView.findViewById(R.id.bookAuthor);
+        playButton = inflatedView.findViewById(R.id.playButton);
+        playButton.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View view) {
+            if(bookObj != null) {
+                parentFragment.onButtonPressed(bookObj);
+            }
+        }});
         displayBook(bookObj);
         return inflatedView;
     }
 
     public void displayBook(Book book){
         if(book != null) {
+            bookObj = book;
             ((TextView) bookTitle).setText(book.getTitle());
             Picasso.with(getActivity().getApplicationContext()).load(book.getURL()).fit().into((ImageView) bookImg);
-            ((TextView) bookAuthor).setText(String.valueOf(book.getPublished()) + ": " + book.getAuthor());
+            ((TextView) bookAuthor).setText(book.getPublished() + ": " + book.getAuthor());
+            inflatedView.findViewById(R.id.playButton).setVisibility(View.VISIBLE);
+        } else {
+            inflatedView.findViewById(R.id.playButton).setVisibility(View.GONE);
         }
     }
 
@@ -88,11 +97,21 @@ public class BookDetailsFragment extends Fragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
+        if (context instanceof BookDetailsFragment.BookDetailsFragmentCommunicator) {
+            parentFragment = (BookDetailsFragment.BookDetailsFragmentCommunicator) context;
+        } else {
+            throw new RuntimeException(context.toString()
+                    + " must implement BookDetailsFragmentCommunicator");
+        }
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
+    }
+
+    public interface BookDetailsFragmentCommunicator {
+        void onButtonPressed(Book book);
     }
 
 }

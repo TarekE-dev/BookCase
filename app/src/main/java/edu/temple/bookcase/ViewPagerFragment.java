@@ -15,8 +15,6 @@ import android.view.ViewGroup;
 
 import java.util.ArrayList;
 
-import static androidx.viewpager.widget.PagerAdapter.POSITION_NONE;
-
 
 /**
  * A simple {@link Fragment} subclass.
@@ -29,31 +27,33 @@ public class ViewPagerFragment extends Fragment {
 
     ViewPager viewPager;
     ArrayList<Book> bookList;
-    ArrayList<BookDetailsFragment> books = new ArrayList<BookDetailsFragment>();
     BookAdapter bookAdapter;
+    Book viewing;
 
     public class BookAdapter extends FragmentPagerAdapter {
-        public ArrayList<BookDetailsFragment> books;
         private BookDetailsFragment currentFragment = null;
-        public BookAdapter(@NonNull FragmentManager fm, ArrayList<BookDetailsFragment> books) {
+        public BookAdapter(@NonNull FragmentManager fm) {
             super(fm);
-            this.books = books;
         }
         public int getItemPosition(Object object) { return POSITION_NONE; }
         @NonNull
         @Override
         public Fragment getItem(int position) {
-            currentFragment = books.get(position);
-            return currentFragment;
-        }
-
-        public BookDetailsFragment getCurrentFragment(){
-            return currentFragment;
+            Fragment newFragment = BookDetailsFragment.newInstance(bookList.get(position));
+            viewing = bookList.get(position);
+            System.out.println(viewing);
+            return newFragment;
         }
 
         @Override
         public int getCount() {
-            return books.size();
+            return bookList.size();
+        }
+
+        @Override
+        public Object instantiateItem(ViewGroup container, int position){
+            Fragment createdFragment = (Fragment) super.instantiateItem(container, position);
+            return createdFragment;
         }
     }
 
@@ -85,9 +85,6 @@ public class ViewPagerFragment extends Fragment {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
             bookList = getArguments().getParcelableArrayList(BOOKLIST);
-            for(Book book: bookList) {
-                books.add(BookDetailsFragment.newInstance(book));
-            }
         }
     }
 
@@ -96,7 +93,7 @@ public class ViewPagerFragment extends Fragment {
                              Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_view_pager_adapter, container, false);
         viewPager = (ViewPager) view.findViewById(R.id.viewpager);
-        bookAdapter = new BookAdapter(getChildFragmentManager(), books);
+        bookAdapter = new BookAdapter(getChildFragmentManager());
         viewPager.setAdapter(bookAdapter);
         return view;
     }
@@ -108,10 +105,8 @@ public class ViewPagerFragment extends Fragment {
 
     public ArrayList<Book> getBooks(){return this.bookList;}
 
-    public BookDetailsFragment getCurrentFragment(){
-        if(bookAdapter == null)
-            return null;
-        return bookAdapter.getCurrentFragment();
+    public Book getCurrentBook(){
+        return viewing;
     }
 
     @Override

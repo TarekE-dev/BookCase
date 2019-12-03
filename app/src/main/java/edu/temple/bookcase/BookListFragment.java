@@ -19,7 +19,7 @@ import static android.widget.AdapterView.*;
 /**
  * A simple {@link Fragment} subclass.
  * Activities that contain this fragment must implement the
- * {@link BookListFragment.OnFragmentInteractionListener} interface
+ * {@link BookListFragmentCommunicator} interface
  * to handle interaction events.
  * Use the {@link BookListFragment#newInstance} factory method to
  * create an instance of this fragment.
@@ -33,7 +33,7 @@ public class BookListFragment extends Fragment {
     // the fragment initialization parameters, e.g. ARG_ITEM_NUMBER
     private static final String BOOKLIST = "BOOK_LIST";
 
-    private OnFragmentInteractionListener parentFragment;
+    private BookListFragmentCommunicator parentFragment;
 
     public BookListFragment() {
     }
@@ -72,7 +72,7 @@ public class BookListFragment extends Fragment {
         listView.setOnItemClickListener(new OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                parentFragment.onFragmentInteraction(i);
+                parentFragment.onBookClicked(i);
             }
         });
         return view;
@@ -81,11 +81,11 @@ public class BookListFragment extends Fragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        if (context instanceof OnFragmentInteractionListener) {
-            parentFragment = (OnFragmentInteractionListener) context;
+        if (context instanceof BookListFragmentCommunicator) {
+            parentFragment = (BookListFragmentCommunicator) context;
         } else {
             throw new RuntimeException(context.toString()
-                    + " must implement OnFragmentInteractionListener");
+                    + " must implement BookListFragmentCommunicator");
         }
     }
 
@@ -109,7 +109,7 @@ public class BookListFragment extends Fragment {
      * "http://developer.android.com/training/basics/fragments/communicating.html"
      * >Communicating with Other Fragments</a> for more information.
      */
-    public interface OnFragmentInteractionListener {
-        void onFragmentInteraction(int index);
+    public interface BookListFragmentCommunicator {
+        void onBookClicked(int index);
     }
 }
