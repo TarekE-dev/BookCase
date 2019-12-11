@@ -5,6 +5,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.FragmentManager;
 import edu.temple.audiobookplayer.AudiobookService;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
@@ -26,6 +27,7 @@ import com.google.gson.reflect.TypeToken;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.Type;
@@ -141,7 +143,10 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
             @Override
             public void onClick(View view) {
                 if (currentBook != null) {
-                    TITLE = "On Standby: " + currentBook.getTitle();
+                    if(!((AudiobookService.MediaControlBinder) service).isPlaying())
+                        TITLE = "Now Playing: " + currentBook.getTitle();
+                    else
+                        TITLE = "On Standby: " + currentBook.getTitle();
                     setTitle(TITLE);
                 }
                 ((AudiobookService.MediaControlBinder) service).pause();
@@ -176,8 +181,10 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
 
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
-                ((AudiobookService.MediaControlBinder) service).seekTo(seekBar.getProgress());
-                currentBook.setBookPos(seekBar.getProgress());
+                if(currentBook != null) {
+                    ((AudiobookService.MediaControlBinder) service).seekTo(seekBar.getProgress());
+                    currentBook.setBookPos(seekBar.getProgress());
+                }
             }
         });
 
@@ -236,23 +243,6 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
             return null;
         ArrayList<Book> bookList = bookArrayListFromJson(bookListJson);
         return bookList;
-    }
-
-    private ArrayList<Book> getBookList() {
-        if(findViewById(R.id.bookList) != null){
-            if(viewPagerFragment != null){
-                return viewPagerFragment.getBooks();
-            } else if(bookListFragment != null) {
-                return bookListFragment.getBooks();
-            }
-        } else {
-            if(bookListFragment != null){
-                return bookListFragment.getBooks();
-            } else if(viewPagerFragment != null){
-                return viewPagerFragment.getBooks();
-            }
-        }
-        return null;
     }
 
     private void displayFragments(){
@@ -335,6 +325,67 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
             bookList.add(new Book(id, title, author, published, coverURL, duration));
         }
         saveBookList(bookList);
+    }
+
+    private void downloadBook(final Book book){
+        final Context mainContext = this;
+        final String url = getResources().getString(R.string.BookDownloadAPI) + book.getId();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String response;
+                URL bookAPI = null;
+                try {
+                    bookAPI = new URL(url);
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                }
+                URLConnection connection = null;
+                BufferedReader in = null;
+                try {
+                    connection = bookAPI.openConnection();
+                } catch (IOException e){
+                    e.printStackTrace();
+                }
+                try {
+                    in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
+                StringBuilder sb = new StringBuilder();
+                String currentLine = null;
+                while(true){
+                    try {
+                        currentLine = in.readLine();
+                    } catch (IOException e){
+                        e.printStackTrace();
+                    }
+                    if(currentLine == null){
+                        break;
+                    }
+                    sb.append(currentLine);
+                }
+                try {
+                    in.close();
+                } catch (IOException e){
+                    e.printStackTrace();
+                }
+                response = sb.toString();
+                File bookDir = new File(mainContext.getFilesDir(), "books");
+                if(!bookDir.exists()){
+                    bookDir.mkdir();
+                }
+                try {
+                    File ofile = new File(bookDir, "book-" + String.valueOf(book.getId()));
+                    FileWriter fw = new FileWriter(ofile);
+                    fw.append(response);
+                    fw.flush();
+                    fw.close();
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
+            }
+        }).start();
     }
 
     private void getJsonResponse(final String url) {
