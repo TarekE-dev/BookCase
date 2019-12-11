@@ -68,6 +68,9 @@ public class BookListFragment extends Fragment {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_book_list, container, false);
         listView = (ListView) view.findViewById(R.id.listView);
+        if(books.size() == 0){
+            books.add(new Book(""));
+        }
         listView.setAdapter(new ListViewAdapter(getActivity(), books));
         listView.setOnItemClickListener(new OnItemClickListener() {
             @Override

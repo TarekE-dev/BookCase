@@ -47,7 +47,11 @@ public class ListViewAdapter extends BaseAdapter {
     public View getView(int i, View view, ViewGroup viewGroup) {
         TextView textView = new TextView(context);
         Book book = (Book) getItem(i);
-        textView.setText(((Book) getItem(i)).getTitle());
+        if(book == null){
+            textView.setText("No books found");
+        } else {
+            textView.setText(book.getTitle());
+        }
         textView.setTextSize(25);
         return textView;
     }

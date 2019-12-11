@@ -8,9 +8,11 @@ import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.os.PersistableBundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -21,6 +23,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
@@ -33,12 +36,14 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
     private final String BOOKLIST_FRAG = "book_list_frag";
     private final String BOOKDETAILS_FRAG = "book_details_frag";
     private final String VIEWPAGER_FRAG = "view_pager_frag";
+    private final String BOOK_LIST = "book_list";
     private int BOOK_POS = 0;
     static int DURATION = 100;
     static int BOOK_ID = -1;
     static Book currentBook;
     ComponentName audiobookService;
     private static String TITLE = "BookCase";
+    private String bookCasePath;
 
     Button searchButton;
     EditText searchText;
@@ -99,6 +104,9 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        bookCasePath = getExternalFilesDir(null).getAbsolutePath() + File.separator;
+        getPreferences(this.MODE_PRIVATE);
 
         bookDetailsFragment = (BookDetailsFragment) fm.findFragmentByTag(BOOKDETAILS_FRAG);
         bookListFragment = (BookListFragment) fm.findFragmentByTag(BOOKLIST_FRAG);
@@ -330,9 +338,21 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
             ((AudiobookService.MediaControlBinder) service).stop();
             BOOK_POS = 0;
         }
-        ((AudiobookService.MediaControlBinder) service).play(book.getId(), BOOK_POS);
+        ((AudiobookService.MediaControlBinder) service).play(book.getId());
         DURATION = book.getDuration();
         seekBar.setMax(DURATION);
         BOOK_ID = book.getId();
+    }
+
+    @Override
+    public void onSaveInstanceState(@NonNull Bundle outState, @NonNull PersistableBundle outPersistentState) {
+        outState.putParcelableArrayList(BOOK_LIST, bookList);
+        super.onSaveInstanceState(outState, outPersistentState);
+    }
+
+    @Override
+    public void onDestroy(){
+        super.onDestroy();
+        unbindService(mServerConn);
     }
 }

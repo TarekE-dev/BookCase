@@ -11,6 +11,11 @@ public class Book implements Parcelable {
     private int published;
     private String coverURL;
     private int duration;
+    private String filePath;
+
+    public Book(String title){
+
+    }
 
     public Book(int id, String title, String author, int published, String coverURL, int duration){
         this.id = id;
@@ -19,6 +24,7 @@ public class Book implements Parcelable {
         this.published = published;
         this.coverURL = coverURL;
         this.duration = duration;
+        filePath = null;
     }
 
     protected Book(Parcel in){
@@ -27,6 +33,8 @@ public class Book implements Parcelable {
         author = in.readString();
         published = in.readInt();
         coverURL = in.readString();
+        duration = in.readInt();
+        filePath = in.readString();
     }
 
     public static final Creator<Book> CREATOR = new Creator<Book>() {
@@ -63,6 +71,10 @@ public class Book implements Parcelable {
 
     public int getDuration() { return this.duration; }
 
+    public String getFilePath(){ return this.filePath; }
+
+    public void setFilePath(String filePath) { this.filePath = filePath; }
+
     @Override
     public int describeContents() {
         return 0;
@@ -75,6 +87,8 @@ public class Book implements Parcelable {
         parcel.writeString(author);
         parcel.writeInt(published);
         parcel.writeString(coverURL);
+        parcel.writeInt(duration);
+        parcel.writeString(filePath);
     }
 
     @Override
