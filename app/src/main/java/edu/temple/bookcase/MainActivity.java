@@ -26,16 +26,10 @@ import org.json.JSONObject;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -76,6 +70,8 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
             if(message.obj != null){
                 seekBar.setProgress(((AudiobookService.BookProgress) message.obj).getProgress());
                 currentBook.setBookPos(((AudiobookService.BookProgress) message.obj).getProgress());
+                if(bookLibrary.getBookById(currentBook.getId()) != null)
+                    bookLibrary.getBookById(currentBook.getId()).setBookPos(((AudiobookService.BookProgress) message.obj).getProgress());
             }
             return false;
         }
@@ -96,6 +92,13 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
             service = iBinder;
             ((AudiobookService.MediaControlBinder) service).setProgressHandler(seekBarHandler);
+            if(currentBook != null) {
+                if(((AudiobookService.MediaControlBinder) service).isPlaying())
+                    TITLE = "Now Playing: " + currentBook.getTitle();
+                else
+                    TITLE = "On Standby: " + currentBook.getTitle();
+                setTitle(TITLE);
+            }
         }
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
@@ -140,7 +143,7 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
         });
 
 
-
+        currentBook = getSavedBook();
         setTitle(TITLE);
         bookList = getSavedBookList();
         bookLibrary = new Library(bookList);
@@ -150,20 +153,21 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
         else
             displayFragments();
 
-        currentBook = getSavedBook();
 
         pauseButton = findViewById(R.id.pauseButton);
         pauseButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 if (currentBook != null) {
-                    if(!((AudiobookService.MediaControlBinder) service).isPlaying())
+                    if(!((AudiobookService.MediaControlBinder) service).isPlaying()) {
                         TITLE = "Now Playing: " + currentBook.getTitle();
-                    else
+                        ((AudiobookService.MediaControlBinder) service).play(currentBook.getId(), currentBook.getBookPos());
+
+                    } else {
                         TITLE = "On Standby: " + currentBook.getTitle();
-                    setTitle(TITLE);
+                        ((AudiobookService.MediaControlBinder) service).pause();
+                    } setTitle(TITLE);
                 }
-                ((AudiobookService.MediaControlBinder) service).pause();
                 saveBookPlaying(currentBook);
             }
         });
@@ -172,17 +176,23 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
         stopButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                ((AudiobookService.MediaControlBinder) service).stop();
-                currentBook.setBookPos(0);
-                seekBar.setProgress(currentBook.getBookPos());
-                TITLE = "BookCase";
-                setTitle(TITLE);
-                currentBook = null;
+                if(currentBook != null) {
+                    ((AudiobookService.MediaControlBinder) service).stop();
+                    bookLibrary.getBookById(currentBook.getId()).setBookPos(0);
+                    seekBar.setProgress(0);
+                    TITLE = "BookCase";
+                    setTitle(TITLE);
+                    currentBook = null;
+                    saveBookPlaying(currentBook);
+                }
             }
         });
 
         seekBar = findViewById(R.id.seekBar);
         seekBar.setMax(currentBook != null ? currentBook.getDuration() : 100);
+        if(currentBook != null)
+            seekBar.setProgress(currentBook.getBookPos());
+
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
@@ -230,7 +240,11 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
     }
 
     private void saveBookPlaying(Book book){
-        String bookAsJson = bookToJson(book);
+        String bookAsJson;
+        if(book != null)
+            bookAsJson = bookToJson(book);
+        else
+            bookAsJson = null;
         SharedPreferences.Editor editor = SP.edit();
         editor.putString(BOOK_PLAYING, bookAsJson);
         editor.commit();
@@ -394,13 +408,14 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
 
     @Override
     public void onPlayButtonPressed(Book book) {
-        currentBook = book;
         TITLE = "Now Playing: " + book.getTitle();
         setTitle(TITLE);
-        if(!book.equals(currentBook)){
+        if(currentBook != null && !book.equals(currentBook)){
+            bookLibrary.getBookById(currentBook.getId()).setBookPos(currentBook.getBookPos());
             ((AudiobookService.MediaControlBinder) service).stop();
-            currentBook.setBookPos(0);
+            saveBookList(bookLibrary.getBookList());
         }
+        currentBook = book;
         System.out.println(book.getFilePath());
         if(book.getFilePath() == null)
             ((AudiobookService.MediaControlBinder) service).play(currentBook.getId());
@@ -426,6 +441,8 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
         if(bookPath.exists()){
             bookPath.delete();
         }
+        bookLibrary.getBookById(book.getId()).setFilePath(null);
+        saveBookList(bookLibrary.getBookList());
     }
 
     @Override
@@ -438,5 +455,6 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
     public void onDestroy(){
         super.onDestroy();
         unbindService(mServerConn);
+        saveBookList(bookLibrary.getBookList());
     }
 }

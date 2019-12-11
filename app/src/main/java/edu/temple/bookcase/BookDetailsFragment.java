@@ -3,8 +3,11 @@ package edu.temple.bookcase;
 import android.content.Context;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
 
+import android.os.Handler;
+import android.os.Message;
 import android.os.Parcel;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -47,6 +50,14 @@ public class BookDetailsFragment extends Fragment {
     Button playButton;
     ImageView fileButton;
     ImageView deleteButton;
+
+    Handler downloadHandler = new Handler(new Handler.Callback() {
+        @Override
+        public boolean handleMessage(@NonNull Message message) {
+            updateViews();
+            return false;
+        }
+    });
 
     private BookDetailsFragmentCommunicator parentFragment;
 
@@ -92,10 +103,9 @@ public class BookDetailsFragment extends Fragment {
             }
         }});
         DOWNLOADED = bookObj != null && bookObj.getFilePath() != null ? true : false;
-        updateViews();
         fileButton = inflatedView.findViewById(R.id.fileButton);
         deleteButton = inflatedView.findViewById(R.id.deleteButton);
-
+        updateViews();
         fileButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -124,12 +134,16 @@ public class BookDetailsFragment extends Fragment {
     }
 
     private void updateViews() {
-        if(DOWNLOADED) {
+        DOWNLOADED = bookObj != null && bookObj.getFilePath() != null ? true : false;
+        if(bookObj == null || bookObj.getAuthor() == null) {
+            fileButton.setVisibility(View.GONE);
+            deleteButton.setVisibility(View.GONE);
+        } else if(DOWNLOADED) {
             fileButton.setVisibility(View.GONE);
             deleteButton.setVisibility(View.VISIBLE);
         } else {
-            fileButton.setVisibility(View.GONE);
-            deleteButton.setVisibility(View.VISIBLE);
+            fileButton.setVisibility(View.VISIBLE);
+            deleteButton.setVisibility(View.GONE);
         }
     }
 
@@ -143,6 +157,7 @@ public class BookDetailsFragment extends Fragment {
         } else {
             inflatedView.findViewById(R.id.playButton).setVisibility(View.GONE);
         }
+        updateViews();
     }
 
     @Override
@@ -184,8 +199,8 @@ public class BookDetailsFragment extends Fragment {
                 }
                 DOWNLOADING = false;
                 DOWNLOADED = true;
-                updateViews();
                 parentFragment.onDownloadButtonPressed(book);
+                downloadHandler.sendMessage(Message.obtain());
             }
         }.start();
     }

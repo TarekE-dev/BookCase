@@ -47,7 +47,6 @@
             android:layout_weight="1"
             android:background="@color/colorGreen"
             android:text="Pause" />
-
         <Button
             android:id="@+id/stopButton"
             android:layout_width="0dp"
