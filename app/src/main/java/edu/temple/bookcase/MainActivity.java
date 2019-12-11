@@ -7,8 +7,8 @@ import edu.temple.audiobookplayer.AudiobookService;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -21,11 +21,14 @@ import android.widget.SeekBar;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
@@ -37,10 +40,9 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
     private final String BOOKDETAILS_FRAG = "book_details_frag";
     private final String VIEWPAGER_FRAG = "view_pager_frag";
     private final String BOOK_LIST = "book_list";
-    private int BOOK_POS = 0;
-    static int DURATION = 100;
-    static int BOOK_ID = -1;
-    static Book currentBook;
+    private final String BOOK_PLAYING = "book_playing";
+
+    private Book currentBook;
     ComponentName audiobookService;
     private static String TITLE = "BookCase";
     private String bookCasePath;
@@ -56,12 +58,14 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
     BookListFragment bookListFragment;
     ViewPagerFragment viewPagerFragment;
 
+    Gson gson = new Gson();
+
     Handler seekBarHandler = new Handler(new Handler.Callback(){
         @Override
         public boolean handleMessage(@NonNull Message message){
             if(message.obj != null){
                 seekBar.setProgress(((AudiobookService.BookProgress) message.obj).getProgress());
-                BOOK_POS = ((AudiobookService.BookProgress) message.obj).getProgress();
+                currentBook.setBookPos(((AudiobookService.BookProgress) message.obj).getProgress());
             }
             return false;
         }
@@ -92,11 +96,12 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
 
     ArrayList<Book> bookList = null;
     FragmentManager fm = getSupportFragmentManager();
+    SharedPreferences SP;
+
 
     @Override
     public void onBookClicked(int index) {
         ((BookDetailsFragment) fm.findFragmentByTag(BOOKDETAILS_FRAG)).displayBook(bookList.get(index));
-        BOOK_POS = 0;
     }
 
 
@@ -104,6 +109,8 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        SP = getPreferences(this.MODE_PRIVATE);
 
         bookCasePath = getExternalFilesDir(null).getAbsolutePath() + File.separator;
         getPreferences(this.MODE_PRIVATE);
@@ -121,11 +128,13 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
             }
         });
         setTitle(TITLE);
-        bookList = getBookList();
+        bookList = getSavedBookList();
         if (bookList == null)
             getJsonResponse(getResources().getString(R.string.BookAPI));
         else
             displayFragments();
+
+        currentBook = getSavedBook();
 
         pauseButton = findViewById(R.id.pauseButton);
         pauseButton.setOnClickListener(new View.OnClickListener() {
@@ -136,6 +145,7 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
                     setTitle(TITLE);
                 }
                 ((AudiobookService.MediaControlBinder) service).pause();
+                saveBookPlaying(currentBook);
             }
         });
 
@@ -144,8 +154,8 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
             @Override
             public void onClick(View view) {
                 ((AudiobookService.MediaControlBinder) service).stop();
-                BOOK_POS = 0;
-                seekBar.setProgress(BOOK_POS);
+                currentBook.setBookPos(0);
+                seekBar.setProgress(currentBook.getBookPos());
                 TITLE = "BookCase";
                 setTitle(TITLE);
                 currentBook = null;
@@ -153,7 +163,7 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
         });
 
         seekBar = findViewById(R.id.seekBar);
-        seekBar.setMax(DURATION);
+        seekBar.setMax(currentBook != null ? currentBook.getDuration() : 100);
         seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
@@ -167,7 +177,7 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
             @Override
             public void onStopTrackingTouch(SeekBar seekBar) {
                 ((AudiobookService.MediaControlBinder) service).seekTo(seekBar.getProgress());
-                BOOK_POS = seekBar.getProgress();
+                currentBook.setBookPos(seekBar.getProgress());
             }
         });
 
@@ -177,6 +187,55 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
         if (service == null) {
             bindService(serviceIntent, mServerConn, this.BIND_AUTO_CREATE);
         }
+    }
+
+
+    private String bookToJson(Book book) {
+        return gson.toJson(book);
+    }
+
+    private Book bookFromJson(String json){
+        return gson.fromJson(json, Book.class);
+    }
+
+    private String bookArrayListToJson(ArrayList<Book> bookList){
+        Type bookArrayList = new TypeToken<ArrayList<Book>>(){}.getType();
+        return gson.toJson(bookList, bookArrayList);
+    }
+
+    private ArrayList<Book> bookArrayListFromJson(String json){
+        Type bookArrayList = new TypeToken<ArrayList<Book>>(){}.getType();
+        return gson.fromJson(json, bookArrayList);
+    }
+
+    private void saveBookPlaying(Book book){
+        String bookAsJson = bookToJson(book);
+        SharedPreferences.Editor editor = SP.edit();
+        editor.putString(BOOK_PLAYING, bookAsJson);
+        editor.commit();
+    }
+
+    private Book getSavedBook(){
+        String retrieved = SP.getString(BOOK_PLAYING, null);
+        if(retrieved == null)
+            return null;
+        Book savedBook = bookFromJson(retrieved);
+        return savedBook;
+    }
+
+    private void saveBookList(ArrayList<Book> bookList){
+        String bookListJson = bookArrayListToJson(bookList);
+        SharedPreferences.Editor editor = SP.edit();
+        editor.putString(BOOK_LIST, bookListJson);
+        editor.commit();
+    }
+
+    private ArrayList<Book> getSavedBookList(){
+        String bookListJson = SP.getString(BOOK_LIST, null);
+        if(bookListJson == null)
+            return null;
+        ArrayList<Book> bookList = bookArrayListFromJson(bookListJson);
+        return bookList;
     }
 
     private ArrayList<Book> getBookList() {
@@ -220,10 +279,7 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
     }
 
     private void addBookDetailsFragment(){
-        Book toView = null;
-        if(currentBook != null){
-            toView = currentBook;
-        }
+        Book toView = currentBook;
         if(bookDetailsFragment == null) {
             bookDetailsFragment = BookDetailsFragment.newInstance(toView);
             fm.beginTransaction().add(R.id.bookDetail, bookDetailsFragment, BOOKDETAILS_FRAG).commit();
@@ -278,6 +334,7 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
             }
             bookList.add(new Book(id, title, author, published, coverURL, duration));
         }
+        saveBookList(bookList);
     }
 
     private void getJsonResponse(final String url) {
@@ -334,14 +391,13 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
         currentBook = book;
         TITLE = "Now Playing: " + book.getTitle();
         setTitle(TITLE);
-        if(book.getId() != BOOK_ID){
+        if(!book.equals(currentBook)){
             ((AudiobookService.MediaControlBinder) service).stop();
-            BOOK_POS = 0;
+            currentBook.setBookPos(0);
         }
-        ((AudiobookService.MediaControlBinder) service).play(book.getId());
-        DURATION = book.getDuration();
-        seekBar.setMax(DURATION);
-        BOOK_ID = book.getId();
+        ((AudiobookService.MediaControlBinder) service).play(currentBook.getId());
+        seekBar.setMax(currentBook.getDuration());
+        saveBookPlaying(currentBook);
     }
 
     @Override
