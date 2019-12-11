@@ -17,6 +17,7 @@ import android.os.PersistableBundle;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.SeekBar;
 
 import org.json.JSONArray;
@@ -54,6 +55,7 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
 
     Button pauseButton;
     Button stopButton;
+    ImageView fileButton;
     SeekBar seekBar;
 
     BookDetailsFragment bookDetailsFragment;
@@ -129,6 +131,9 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
                 getJsonResponse(getResources().getString(R.string.BookSearchAPI) + searchText.getText());
             }
         });
+
+
+
         setTitle(TITLE);
         bookList = getSavedBookList();
         if (bookList == null)
@@ -327,9 +332,10 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
         saveBookList(bookList);
     }
 
-    private void downloadBook(final Book book){
+    private String downloadBook(final Book book){
         final Context mainContext = this;
         final String url = getResources().getString(R.string.BookDownloadAPI) + book.getId();
+        final String[] filepath = {""};
         new Thread(new Runnable() {
             @Override
             public void run() {
@@ -377,6 +383,7 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
                 }
                 try {
                     File ofile = new File(bookDir, "book-" + String.valueOf(book.getId()));
+                    filepath[0] = ofile.getAbsolutePath();
                     FileWriter fw = new FileWriter(ofile);
                     fw.append(response);
                     fw.flush();
@@ -386,6 +393,8 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
                 }
             }
         }).start();
+        System.out.println(filepath[0]);
+        return filepath[0];
     }
 
     private void getJsonResponse(final String url) {
@@ -438,7 +447,7 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
     }
 
     @Override
-    public void onButtonPressed(Book book) {
+    public void onPlayButtonPressed(Book book) {
         currentBook = book;
         TITLE = "Now Playing: " + book.getTitle();
         setTitle(TITLE);
@@ -446,9 +455,25 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
             ((AudiobookService.MediaControlBinder) service).stop();
             currentBook.setBookPos(0);
         }
-        ((AudiobookService.MediaControlBinder) service).play(currentBook.getId());
+        System.out.println(book.getFilePath());
+        if(book.getFilePath() == null)
+            ((AudiobookService.MediaControlBinder) service).play(currentBook.getId());
+        else
+            ((AudiobookService.MediaControlBinder) service).play(new File(book.getFilePath()), book.getBookPos());
         seekBar.setMax(currentBook.getDuration());
         saveBookPlaying(currentBook);
+    }
+
+    @Override
+    public void onDownloadButtonPressed(Book book) {
+        String filepath = downloadBook(book);
+        System.out.println(filepath);
+        for(int i=0; i < bookList.size(); i++){
+            if(bookList.get(i).equals(book)){
+                bookList.get(i).setFilePath(filepath);
+            }
+        }
+        saveBookList(bookList);
     }
 
     @Override

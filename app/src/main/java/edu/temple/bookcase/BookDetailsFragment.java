@@ -33,6 +33,8 @@ public class BookDetailsFragment extends Fragment {
     View bookImg;
     View bookAuthor;
     Button playButton;
+    ImageView fileButton;
+
     private BookDetailsFragmentCommunicator parentFragment;
 
     public BookDetailsFragment() {
@@ -73,9 +75,16 @@ public class BookDetailsFragment extends Fragment {
         playButton = inflatedView.findViewById(R.id.playButton);
         playButton.setOnClickListener(new View.OnClickListener() { @Override public void onClick(View view) {
             if(bookObj != null) {
-                parentFragment.onButtonPressed(bookObj);
+                parentFragment.onPlayButtonPressed(bookObj);
             }
         }});
+        fileButton = inflatedView.findViewById(R.id.fileButton);
+        fileButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                parentFragment.onDownloadButtonPressed(bookObj);
+            }
+        });
         displayBook(bookObj);
         return inflatedView;
     }
@@ -91,8 +100,6 @@ public class BookDetailsFragment extends Fragment {
             inflatedView.findViewById(R.id.playButton).setVisibility(View.GONE);
         }
     }
-
-    public Book getBook(){return this.bookObj;}
 
     @Override
     public void onAttach(Context context) {
@@ -111,7 +118,8 @@ public class BookDetailsFragment extends Fragment {
     }
 
     public interface BookDetailsFragmentCommunicator {
-        void onButtonPressed(Book book);
+        void onPlayButtonPressed(Book book);
+        void onDownloadButtonPressed(Book book);
     }
 
 }
