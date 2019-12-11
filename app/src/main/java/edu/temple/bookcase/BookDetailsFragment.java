@@ -81,7 +81,7 @@ public class BookDetailsFragment extends Fragment {
     }
 
     public void displayBook(Book book){
-        if(book != null) {
+        if(book != null && book.getTitle() != null) {
             bookObj = book;
             ((TextView) bookTitle).setText(book.getTitle());
             Picasso.with(getActivity().getApplicationContext()).load(book.getURL()).fit().into((ImageView) bookImg);
