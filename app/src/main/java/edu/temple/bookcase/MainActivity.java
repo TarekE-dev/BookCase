@@ -26,11 +26,16 @@ import org.json.JSONObject;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.lang.reflect.Type;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -44,6 +49,7 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
     private final String VIEWPAGER_FRAG = "view_pager_frag";
     private final String BOOK_LIST = "book_list";
     private final String BOOK_PLAYING = "book_playing";
+    private int STREAM = -1;
 
     private Book currentBook;
     ComponentName audiobookService;
@@ -99,6 +105,7 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
     };
 
     ArrayList<Book> bookList = null;
+    Library bookLibrary = null;
     FragmentManager fm = getSupportFragmentManager();
     SharedPreferences SP;
 
@@ -136,6 +143,8 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
 
         setTitle(TITLE);
         bookList = getSavedBookList();
+        bookLibrary = new Library(bookList);
+
         if (bookList == null)
             getJsonResponse(getResources().getString(R.string.BookAPI));
         else
@@ -330,72 +339,9 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
             bookList.add(new Book(id, title, author, published, coverURL, duration));
         }
         saveBookList(bookList);
+        bookLibrary.setBookList(bookList);
     }
 
-    private String downloadBook(final Book book){
-        final Context mainContext = this;
-        final String url = getResources().getString(R.string.BookDownloadAPI) + book.getId();
-        final String[] filepath = {""};
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                String response;
-                URL bookAPI = null;
-                try {
-                    bookAPI = new URL(url);
-                } catch (MalformedURLException e) {
-                    e.printStackTrace();
-                }
-                URLConnection connection = null;
-                BufferedReader in = null;
-                try {
-                    connection = bookAPI.openConnection();
-                } catch (IOException e){
-                    e.printStackTrace();
-                }
-                try {
-                    in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                } catch (Exception e){
-                    e.printStackTrace();
-                }
-                StringBuilder sb = new StringBuilder();
-                String currentLine = null;
-                while(true){
-                    try {
-                        currentLine = in.readLine();
-                    } catch (IOException e){
-                        e.printStackTrace();
-                    }
-                    if(currentLine == null){
-                        break;
-                    }
-                    sb.append(currentLine);
-                }
-                try {
-                    in.close();
-                } catch (IOException e){
-                    e.printStackTrace();
-                }
-                response = sb.toString();
-                File bookDir = new File(mainContext.getFilesDir(), "books");
-                if(!bookDir.exists()){
-                    bookDir.mkdir();
-                }
-                try {
-                    File ofile = new File(bookDir, "book-" + String.valueOf(book.getId()));
-                    filepath[0] = ofile.getAbsolutePath();
-                    FileWriter fw = new FileWriter(ofile);
-                    fw.append(response);
-                    fw.flush();
-                    fw.close();
-                } catch (Exception e){
-                    e.printStackTrace();
-                }
-            }
-        }).start();
-        System.out.println(filepath[0]);
-        return filepath[0];
-    }
 
     private void getJsonResponse(final String url) {
         new Thread() {
@@ -466,19 +412,25 @@ public class MainActivity extends AppCompatActivity implements BookListFragment.
 
     @Override
     public void onDownloadButtonPressed(Book book) {
-        String filepath = downloadBook(book);
-        System.out.println(filepath);
-        for(int i=0; i < bookList.size(); i++){
-            if(bookList.get(i).equals(book)){
-                bookList.get(i).setFilePath(filepath);
-            }
+        File bookDir = new File(this.getFilesDir(), "books");
+        File bookPath = new File(bookDir, "book-" + book.getId() + ".mp3");
+        String filepath = bookPath.getAbsolutePath();
+        bookLibrary.getBookById(book.getId()).setFilePath(filepath);
+        saveBookList(bookLibrary.getBookList());
+    }
+
+    @Override
+    public void onDeleteButtonPressed(Book book) {
+        File bookDir = new File(this.getFilesDir(), "books");
+        File bookPath = new File(bookDir, "book-" + book.getId() + ".mp3");
+        if(bookPath.exists()){
+            bookPath.delete();
         }
-        saveBookList(bookList);
     }
 
     @Override
     public void onSaveInstanceState(@NonNull Bundle outState, @NonNull PersistableBundle outPersistentState) {
-        outState.putParcelableArrayList(BOOK_LIST, bookList);
+        outState.putParcelableArrayList(BOOK_LIST, bookLibrary.getBookList());
         super.onSaveInstanceState(outState, outPersistentState);
     }
 

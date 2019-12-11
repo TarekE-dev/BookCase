@@ -5,13 +5,23 @@ import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
 
+import android.os.Parcel;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
+
 import com.squareup.picasso.Picasso;
+
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URL;
 
 
 /**
@@ -27,6 +37,8 @@ public class BookDetailsFragment extends Fragment {
 
     // TODO: Rename and change types of parameters
     private Book bookObj;
+    private boolean DOWNLOADING = false;
+    private boolean DOWNLOADED = false;
 
     View inflatedView;
     View bookTitle;
@@ -34,6 +46,7 @@ public class BookDetailsFragment extends Fragment {
     View bookAuthor;
     Button playButton;
     ImageView fileButton;
+    ImageView deleteButton;
 
     private BookDetailsFragmentCommunicator parentFragment;
 
@@ -78,15 +91,46 @@ public class BookDetailsFragment extends Fragment {
                 parentFragment.onPlayButtonPressed(bookObj);
             }
         }});
+        DOWNLOADED = bookObj != null && bookObj.getFilePath() != null ? true : false;
+        updateViews();
         fileButton = inflatedView.findViewById(R.id.fileButton);
+        deleteButton = inflatedView.findViewById(R.id.deleteButton);
+
         fileButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                parentFragment.onDownloadButtonPressed(bookObj);
+                if(DOWNLOADING) {
+                    Toast.makeText((Context) parentFragment, "Wait for the current download to finish", Toast.LENGTH_SHORT).show();
+                }
+                else if(bookObj != null) {
+                    downloadAudioBook(bookObj);
+                    DOWNLOADING = true;
+                }
             }
         });
+        deleteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(bookObj != null){
+                    parentFragment.onDeleteButtonPressed(bookObj);
+                    DOWNLOADED = false;
+                    updateViews();
+                }
+            }
+        });
+
         displayBook(bookObj);
         return inflatedView;
+    }
+
+    private void updateViews() {
+        if(DOWNLOADED) {
+            fileButton.setVisibility(View.GONE);
+            deleteButton.setVisibility(View.VISIBLE);
+        } else {
+            fileButton.setVisibility(View.GONE);
+            deleteButton.setVisibility(View.VISIBLE);
+        }
     }
 
     public void displayBook(Book book){
@@ -112,6 +156,40 @@ public class BookDetailsFragment extends Fragment {
         }
     }
 
+    private void downloadAudioBook(final Book book){
+        final Context mContext = (Context) parentFragment;
+        new Thread() {
+            @Override
+            public void run(){
+                File bookDir = new File(mContext.getFilesDir(), "books");
+                if(!bookDir.exists()){
+                    bookDir.mkdir();
+                }
+                File ofile = new File(bookDir, "book-" + String.valueOf(book.getId()) + ".mp3");
+                String url = mContext.getResources().getString(R.string.BookDownloadAPI) + book.getId();
+                try {
+                    URL bookAPI = new URL(url);
+                    InputStream in = new BufferedInputStream(bookAPI.openStream());
+                    OutputStream out = new FileOutputStream(ofile);
+                    byte bytes[] = new byte[4096];
+                    int numBytesRead;
+                    while ((numBytesRead = in.read(bytes)) != -1) {
+                        out.write(bytes, 0, numBytesRead);
+                    }
+                    out.flush();
+                    out.close();
+                    in.close();
+                } catch (Exception e){
+                    e.printStackTrace();
+                }
+                DOWNLOADING = false;
+                DOWNLOADED = true;
+                updateViews();
+                parentFragment.onDownloadButtonPressed(book);
+            }
+        }.start();
+    }
+
     @Override
     public void onDetach() {
         super.onDetach();
@@ -120,6 +198,7 @@ public class BookDetailsFragment extends Fragment {
     public interface BookDetailsFragmentCommunicator {
         void onPlayButtonPressed(Book book);
         void onDownloadButtonPressed(Book book);
+        void onDeleteButtonPressed(Book book);
     }
 
 }

@@ -61,6 +61,15 @@
             android:background="@color/colorGray"
             android:src="@android:drawable/stat_sys_download" />
 
+        <ImageView
+            android:id="@+id/deleteButton"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@color/colorGray"
+            android:visibility="gone"
+            android:src="@android:drawable/ic_menu_delete" />
+
     </LinearLayout>
 
 </LinearLayout>
